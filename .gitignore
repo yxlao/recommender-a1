@@ -1,3 +1,4 @@
+*.pyc
 *.json
 *.txt
 *.ipynb_checkpoints
