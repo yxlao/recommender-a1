@@ -1,3 +1,4 @@
+*.pickle
 *.pyc
 *.json
 *.txt
