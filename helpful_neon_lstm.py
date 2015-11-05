@@ -53,7 +53,7 @@ gradient_limit = 15
 vocab_size = 20000
 sentence_length = 100
 embedding_dim = 128
-hidden_size = 128
+hidden_size = 256
 reset_cells = True
 
 # setup backend
@@ -67,7 +67,14 @@ be = gen_backend(backend=args.backend,
 (X_train, y_train), (X_test, y_test), nclass = Text.pad_data(
     os.path.join(data_root, 'train_text_data_10000.pickle'),
     vocab_size=vocab_size, sentence_length=sentence_length,
-    test_split=0.1)
+    test_split=0.1, nclass=1)
+
+# X_train = X_train[:512]
+# y_train = y_train[:512]
+
+# X_test = X_test[:513]
+# y_test = y_test[:513]
+
 
 print "Vocab size - ", vocab_size
 print "Sentence Length - ", sentence_length
@@ -75,11 +82,11 @@ print "# of train sentences", X_train.shape[0]
 print "# of test sentence", X_test.shape[0]
 
 # need to modify dataiterator to fit non integer output
-train_set = DataIterator(X_train, y_train, nclass=2)
-valid_set = DataIterator(X_test, y_test, nclass=2)
+train_set = DataIterator(X_train, y_train, nclass=1)
+valid_set = DataIterator(X_test, y_test, nclass=1)
 
-for x,y in train_set:
-  break
+# for x,y in train_set:
+#   break
 
 # import ipdb; ipdb.set_trace()
 
@@ -95,7 +102,8 @@ layers = [
          gate_activation=Logistic(), reset_cells=True),
     RecurrentSum(),
     Dropout(keep=0.5),
-    Affine(2, init_glorot, bias=init_glorot, activation=Softmax())
+    Affine(20, init_glorot, bias=init_glorot, activation=Logistic()),
+    Affine(1, init_glorot, bias=init_glorot, activation=None)
 ]
 
 # cost = GeneralizedCost(costfunc=CrossEntropyMulti(usebits=True))
@@ -120,3 +128,10 @@ print "Train MeanSquaredMetric - ", model.eval(train_set, metric=MeanSquaredMetr
 
 print "Valid MeanAbsoluteMetric - ", model.eval(valid_set, metric=MeanAbsoluteMetric())
 print "Valid MeanSquaredMetric - ", model.eval(valid_set, metric=MeanSquaredMetric())
+
+# output result directly
+for x, y in valid_set:
+  import ipdb; ipdb.set_trace()
+  x = model.fprop(x, inference=True)
+  print(x.get())
+  print(y.get())
