@@ -4,7 +4,7 @@ from neon.initializers import Uniform, GlorotUniform
 from neon.layers import GeneralizedCost, LSTM, Affine, Dropout, LookupTable, RecurrentSum
 from neon.models import Model
 from neon.optimizers import Adagrad
-from neon.transforms import Logistic, Tanh, Softmax, CrossEntropyMulti, MeanSquaredMetric, MeanSquared
+from neon.transforms import Logistic, Tanh, Softmax, CrossEntropyMulti, Accuracy
 from neon.callbacks.callbacks import Callbacks
 from neon.util.argparser import NeonArgparser
 import numpy as np
@@ -78,7 +78,6 @@ valid_set = DataIterator(X_test, y_test, nclass=2)
 init_emb = Uniform(low=-0.1 / embedding_dim, high=0.1 / embedding_dim)
 init_glorot = GlorotUniform()
 
-# setup network structures
 layers = [
     LookupTable(
         vocab_size=vocab_size, embedding_dim=embedding_dim, init=init_emb),
@@ -89,14 +88,17 @@ layers = [
     Affine(2, init_glorot, bias=init_glorot, activation=Softmax())
 ]
 
-# cost = GeneralizedCost(costfunc=CrossEntropyMulti(usebits=True))
-cost = GeneralizedCost(costfunc=MeanSquared())
-metric = MeanSquaredMetric()
+print(layers)
+
+cost = GeneralizedCost(costfunc=CrossEntropyMulti(usebits=True))
+metric = Accuracy()
 
 model = Model(layers=layers)
 
 optimizer = Adagrad(learning_rate=0.01, clip_gradients=clip_gradients)
 
+
+# configure callbacks
 callbacks = Callbacks(model, train_set, args, eval_set=valid_set)
 
 # train model
@@ -106,21 +108,21 @@ model.fit(train_set,
           cost=cost,
           callbacks=callbacks)
 
+
 # eval model
-print "Test  MeanSquaredMetric - ", model.eval(valid_set, metric=metric)
-print "Train MeanSquaredMetric - ", model.eval(train_set, metric=metric)
+print "Test  Accuracy - ", 100 * model.eval(valid_set, metric=metric)
+print "Train Accuracy - ", 100 * model.eval(train_set, metric=metric)
 
-
-# # evaluate a minibatch
+# evaluate a minibatch
 # for x, t in valid_set:
 #     x = model.fprop(x, inference=True)
 #     print(metric(x, t))
 #     break
 
-# # get layers construction
+# get layers construction
 # model.layers.layers
 
-# # get last layer output
+# get last layer output
 # print("# get a minibatch data")
 # for x, t in valid_set:
 #     break
