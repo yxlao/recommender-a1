@@ -4,8 +4,7 @@ from neon.initializers import Uniform, GlorotUniform
 from neon.layers import GeneralizedCost, LSTM, Affine, Dropout, LookupTable, RecurrentSum
 from neon.models import Model
 from neon.optimizers import Adagrad
-from neon.transforms import Logistic, Tanh, Softmax, CrossEntropyMulti
-from neon.transforms import MeanSquaredMetric, MeanSquared, MeanAbsoluteMetric
+from neon.transforms import Rectlin, Logistic, Tanh, Softmax, CrossEntropyMulti, Accuracy
 from neon.callbacks.callbacks import Callbacks
 from neon.util.argparser import NeonArgparser
 import numpy as np
@@ -23,7 +22,7 @@ args = Args()
 # the command line arguments
 args.backend = 'gpu'
 args.batch_size = 128
-args.epochs = 1
+args.epochs = 2
 
 args.config = None
 args.data_dir = '/home/linuxthink/nervana/data'
@@ -53,8 +52,11 @@ gradient_limit = 15
 vocab_size = 20000
 sentence_length = 100
 embedding_dim = 128
-hidden_size = 256
+hidden_size = 128
 reset_cells = True
+
+print('batch_size: %s \nvocab_size: %s \nsentence_length: %s \nembedding_dim: %s \nhidden_size: %s' % \
+      (batch_size,      vocab_size,      sentence_length,      embedding_dim,      hidden_size))
 
 # setup backend
 be = gen_backend(backend=args.backend,
@@ -65,36 +67,21 @@ be = gen_backend(backend=args.backend,
 
 # make dataset
 (X_train, y_train), (X_test, y_test), nclass = Text.pad_data(
-    os.path.join(data_root, 'train_text_data_10000.pickle'),
-    vocab_size=vocab_size, sentence_length=sentence_length,
-    test_split=0.1, nclass=1)
-
-# X_train = X_train[:512]
-# y_train = y_train[:512]
-
-# X_test = X_test[:513]
-# y_test = y_test[:513]
-
+    os.path.join(data_root, 'train_valid_text_index_in_binary_label_shuffled_10000.pickle'),
+    vocab_size=vocab_size, sentence_length=sentence_length)
 
 print "Vocab size - ", vocab_size
 print "Sentence Length - ", sentence_length
 print "# of train sentences", X_train.shape[0]
 print "# of test sentence", X_test.shape[0]
 
-# need to modify dataiterator to fit non integer output
-train_set = DataIterator(X_train, y_train, nclass=1)
-valid_set = DataIterator(X_test, y_test, nclass=1)
-
-# for x,y in train_set:
-#   break
-
-# import ipdb; ipdb.set_trace()
+train_set = DataIterator(X_train, y_train, nclass=2)
+valid_set = DataIterator(X_test, y_test, nclass=2)
 
 # weight initialization
 init_emb = Uniform(low=-0.1 / embedding_dim, high=0.1 / embedding_dim)
 init_glorot = GlorotUniform()
 
-# setup network structures
 layers = [
     LookupTable(
         vocab_size=vocab_size, embedding_dim=embedding_dim, init=init_emb),
@@ -102,17 +89,20 @@ layers = [
          gate_activation=Logistic(), reset_cells=True),
     RecurrentSum(),
     Dropout(keep=0.5),
-    Affine(20, init_glorot, bias=init_glorot, activation=Logistic()),
-    Affine(1, init_glorot, bias=init_glorot, activation=None)
+    Affine(2, init_glorot, bias=init_glorot, activation=Softmax())
 ]
 
-# cost = GeneralizedCost(costfunc=CrossEntropyMulti(usebits=True))
-cost = GeneralizedCost(costfunc=MeanSquared())
+print(layers)
+
+cost = GeneralizedCost(costfunc=CrossEntropyMulti(usebits=True))
+metric = Accuracy()
 
 model = Model(layers=layers)
 
 optimizer = Adagrad(learning_rate=0.01, clip_gradients=clip_gradients)
 
+
+# configure callbacks
 callbacks = Callbacks(model, train_set, args, eval_set=valid_set)
 
 # train model
@@ -123,15 +113,18 @@ model.fit(train_set,
           callbacks=callbacks)
 
 # eval model
-print "Train MeanAbsoluteMetric - ", model.eval(train_set, metric=MeanAbsoluteMetric())
-print "Train MeanSquaredMetric - ", model.eval(train_set, metric=MeanSquaredMetric())
+print "Test  Accuracy - ", 100 * model.eval(valid_set, metric=metric)
+print "Train Accuracy - ", 100 * model.eval(train_set, metric=metric)
 
-print "Valid MeanAbsoluteMetric - ", model.eval(valid_set, metric=MeanAbsoluteMetric())
-print "Valid MeanSquaredMetric - ", model.eval(valid_set, metric=MeanSquaredMetric())
+
+import ipdb; ipdb.set_trace()
 
 # output result directly
 for x, y in valid_set:
-  import ipdb; ipdb.set_trace()
   x = model.fprop(x, inference=True)
   print(x.get())
   print(y.get())
+  break
+
+# chance to do analysis
+import ipdb; ipdb.set_trace()
