@@ -4,7 +4,8 @@ from neon.initializers import Uniform, GlorotUniform
 from neon.layers import GeneralizedCost, LSTM, Affine, Dropout, LookupTable, RecurrentSum
 from neon.models import Model
 from neon.optimizers import Adagrad
-from neon.transforms import Logistic, Tanh, Softmax, CrossEntropyMulti, MeanSquaredMetric, MeanSquared
+from neon.transforms import Logistic, Tanh, Softmax, CrossEntropyMulti
+from neon.transforms import MeanSquaredMetric, MeanSquared, MeanAbsoluteMetric
 from neon.callbacks.callbacks import Callbacks
 from neon.util.argparser import NeonArgparser
 import numpy as np
@@ -99,7 +100,6 @@ layers = [
 
 # cost = GeneralizedCost(costfunc=CrossEntropyMulti(usebits=True))
 cost = GeneralizedCost(costfunc=MeanSquared())
-metric = MeanSquaredMetric()
 
 model = Model(layers=layers)
 
@@ -115,5 +115,8 @@ model.fit(train_set,
           callbacks=callbacks)
 
 # eval model
-print "Test  MeanSquaredMetric - ", model.eval(valid_set, metric=metric)
-print "Train MeanSquaredMetric - ", model.eval(train_set, metric=metric)
+print "Train MeanAbsoluteMetric - ", model.eval(train_set, metric=MeanAbsoluteMetric())
+print "Train MeanSquaredMetric - ", model.eval(train_set, metric=MeanSquaredMetric())
+
+print "Valid MeanAbsoluteMetric - ", model.eval(valid_set, metric=MeanAbsoluteMetric())
+print "Valid MeanSquaredMetric - ", model.eval(valid_set, metric=MeanSquaredMetric())
