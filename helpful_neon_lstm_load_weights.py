@@ -98,19 +98,14 @@ print(layers)
 cost = GeneralizedCost(costfunc=CrossEntropyMulti(usebits=True))
 metric = Accuracy()
 
-#############################################################################
-# train model
+##########################################################################
+
 model = Model(layers=layers)
 optimizer = Adagrad(learning_rate=0.01, clip_gradients=clip_gradients)
 callbacks = Callbacks(model, train_set, args, eval_set=valid_set)
 
-model.fit(train_set,
-          optimizer=optimizer,
-          num_epochs=num_epochs,
-          cost=cost,
-          callbacks=callbacks)
+model.load_weights(os.path.join(args.data_dir, '128128_49_model_e2.pkl'))
 
-# eval model
 print "Test  Accuracy - ", 100 * model.eval(valid_set, metric=metric)
 print "Train Accuracy - ", 100 * model.eval(train_set, metric=metric)
 
@@ -120,3 +115,23 @@ for x, y in valid_set:
     print(x.get())
     print(y.get())
     break
+
+#########################################################################
+# continue training
+# optimizer = Adagrad(learning_rate=0.01, clip_gradients=clip_gradients)
+# callbacks = Callbacks(model, train_set, args, eval_set=valid_set)
+
+# import ipdb; ipdb.set_trace()
+
+# re-allocate output memories for each layer
+# model.initialized = False
+# model.initialize(train_set, cost=cost)
+
+# model.fit(train_set,
+#           optimizer=optimizer,
+#           num_epochs=7,
+#           cost=cost,
+#           callbacks=callbacks)
+
+# print "Test  Accuracy - ", 100 * model.eval(valid_set, metric=metric)
+# print "Train Accuracy - ", 100 * model.eval(train_set, metric=metric)
