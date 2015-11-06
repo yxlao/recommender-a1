@@ -22,7 +22,7 @@ args = Args()
 # the command line arguments
 args.backend = 'gpu'
 args.batch_size = 128
-args.epochs = 3
+args.epochs = 50
 
 args.config = None
 args.data_dir = '/home/linuxthink/nervana/data'
@@ -41,7 +41,6 @@ args.rounding = False
 args.save_path = '/home/linuxthink/nervana/data/128128_49_model'
 args.serialize = 1
 args.verbose = 1
-
 
 num_epochs = args.epochs
 
@@ -68,7 +67,7 @@ be = gen_backend(backend=args.backend,
 # make dataset
 (X_train, y_train), (X_test, y_test), nclass = Text.pad_data(
     os.path.join(
-        data_root, 'train_valid_text_index_in_binary_label_shuffled_10000.pickle'),
+        data_root, 'train_valid_text_index_in_binary_label_shuffled.pickle'),
     vocab_size=vocab_size, sentence_length=sentence_length)
 
 print "Vocab size - ", vocab_size
