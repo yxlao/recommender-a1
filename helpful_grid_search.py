@@ -239,39 +239,29 @@ def get_valid_mae(valid_data, ratio_predictor, train_avg_ratio, users_ratio,
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.grid_search import GridSearchCV
 
+print("start building dataset")
 # build dataset
-# train_xs, train_ys = make_average_regression_dataset(train_data,
-#                                                      users_ratio, items_ratio)
-# valid_xs, valid_ys = make_average_regression_dataset(valid_data,
-#                                                      users_ratio, items_ratio)
+train_xs, train_ys = make_average_regression_dataset(train_data,
+                                                     users_ratio, items_ratio)
+valid_xs, valid_ys = make_average_regression_dataset(valid_data,
+                                                     users_ratio, items_ratio)
 all_xs, all_ys = make_average_regression_dataset(all_data, users_ratio,
                                                  items_ratio)
 print("dataset prepared")
 
 # set grid search param
-param_grid = {'learning_rate': [0.05, 0.02, 0.01, 0.005, 0.002, 0.001],
+param_grid = {'learning_rate': [0.02, 0.01, 0.005, 0.002, 0.001],
               'max_depth': [3, 4, 6],
               'min_samples_leaf': [3, 5, 9, 17],
-              'max_features': [1.0, 0.5, 0.3, 0.1]
+              'max_features': [0.8, 0.5, 0.3, 0.1]
               }
 
-param_grid = {'learning_rate': [0.1, 0.05],
-              'max_depth': [3, 4]
-              }
-
-est = GradientBoostingRegressor(n_estimators=1000, loss='lad')
-
-gs_cv = GridSearchCV(est,
-                     param_grid,
-                     verbose=1,
-                     n_jobs=18,
-                     pre_dispatch=32)
-
-gs_cv.fit(train_xs[:5000], train_ys[:5000])
-
+est = GradientBoostingRegressor(n_estimators=3000, subsample=0.15, loss='lad', verbose=1)
+gs_cv = GridSearchCV(est, param_grid, verbose=1, n_jobs=21)
+gs_cv.fit(train_xs, train_ys)
 print(gs_cv.best_params_)
 
-# import ipdb; ipdb.set_trace()
+import ipdb; ipdb.set_trace()
 
 # gbr = GradientBoostingRegressor(learning_rate=0.005,
 #                                 n_estimators=1000,
