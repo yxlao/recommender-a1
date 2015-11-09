@@ -12,18 +12,18 @@ from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.grid_search import GridSearchCV
 
 
-# # load all_data and test_data
+# load all_data and test_data
 start_time = time.time()
-# all_data = pickle.load(open('all_data.pickle', 'rb'))
-# print('data loading time:', time.time() - start_time)
-#
-# # remove the outlier
-# for i in reversed(range(len(all_data))):
-#     d = all_data[i]
-#     if d['helpful']['outOf'] > 3000:
-#         all_data.pop(i)
-#     elif d['helpful']['outOf'] < d['helpful']['nHelpful']:
-#         all_data.pop(i)
+all_data = pickle.load(open('all_data.pickle', 'rb'))
+print('data loading time:', time.time() - start_time)
+
+# remove the outlier
+for i in reversed(range(len(all_data))):
+    d = all_data[i]
+    if d['helpful']['outOf'] > 3000:
+        all_data.pop(i)
+    elif d['helpful']['outOf'] < d['helpful']['nHelpful']:
+        all_data.pop(i)
 
 # utility functions
 def get_mae(helpfuls, helpfuls_predict):
@@ -193,19 +193,25 @@ def get_valid_mae(valid_data, ratio_predictor):
 MAX_ITER = 3000
 
 # build dataset
-# all_xs, all_ys, all_weights = make_dataset(all_data)
-# pickle.dump((all_xs, all_ys, all_weights),
-#             open("all_xs_all_ys_all_weights.pickle", "wb"),
-#             protocol=pickle.HIGHEST_PROTOCOL)
-all_xs, all_ys, all_weights = pickle.load(open("all_xs_all_ys_all_weights.pickle", "rb"))
+all_xs, all_ys, all_weights = make_dataset(all_data)
+pickle.dump((all_xs, all_ys, all_weights),
+            open("all_xs_all_ys_all_weights.pickle", "wb"),
+            protocol=pickle.HIGHEST_PROTOCOL)
 print('dataset prepared')
 
 # set grid search param
-param_grid = {'learning_rate': [0.1, 0.05, 0.01, 0.005],
-              'max_depth': [4, 6],
-              'min_samples_leaf': [3, 9],
-              'max_features': [0.1, 0.5],
-              'subsample': [0.1, 0.3]
+param_grid = {'learning_rate': [0.01, 0.005],
+              'max_depth': [4],
+              'min_samples_leaf': [9],
+              'max_features': [0.5],
+              'subsample': [0.3]
+              }
+
+param_grid = {'learning_rate': [0.01],
+              'max_depth': [4],
+              'min_samples_leaf': [9],
+              'max_features': [0.5],
+              'subsample': [0.3]
               }
 
 # init regressor
@@ -214,8 +220,8 @@ regressor = GradientBoostingRegressor(n_estimators=MAX_ITER,
                                       verbose=1)
 
 # grid search
-grid_searcher = GridSearchCV(regressor, param_grid, verbose=1, n_jobs=35)
-grid_searcher.fit(all_xs, all_ys)
+grid_searcher = GridSearchCV(regressor, param_grid, verbose=1, n_jobs=3)
+grid_searcher.fit(all_xs[:3000], all_ys[:3000])
 
 # print best params
 opt_params = grid_searcher.best_params_
