@@ -6,3 +6,4 @@
 reference
 *.pdf
 gen/*
+*.feature
