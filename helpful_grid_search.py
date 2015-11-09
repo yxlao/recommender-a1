@@ -203,7 +203,7 @@ regressor = GradientBoostingRegressor(learning_rate=0.001,
                                       verbose=1)
 regressor.fit(all_xs[:30000], all_ys[:30000])
 
-print('valid set mae', get_valid_mae(all_xs[900000:], regressor_gb.predict))
+print('valid set mae', get_valid_mae(all_xs[900000:], regressor.predict))
 
 # regressor.fit(all_xs, all_ys)
 
