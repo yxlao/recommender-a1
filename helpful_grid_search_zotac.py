@@ -200,7 +200,7 @@ pickle.dump((all_xs, all_ys, all_weights),
 print('dataset prepared')
 
 # set grid search param
-param_grid = {'learning_rate': [0.01, 0.005],
+param_grid = {'learning_rate': [0.02, 0.01, 0.005],
               'max_depth': [4],
               'min_samples_leaf': [9], # shall be bigger? i think
               'max_features': [0.5],
