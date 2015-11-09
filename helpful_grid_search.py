@@ -4,273 +4,253 @@ import numpy as np
 import scipy as sp
 import cPickle as pickle
 import time
+from pprint import pprint
 import os
 import datetime
 
-# data
-data_root = os.path.expanduser("~") + '/data/CSE255/'
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.grid_search import GridSearchCV
 
-# load all_data
-print("loading data")
+
+# load all_data and test_data
 start_time = time.time()
-all_data = pickle.load(open(data_root + "all_data.pickle", "rb"))
-print(time.time() - start_time)
-
-# split training and valid set
-all_size = len(all_data)
-train_size = 900000
-# train_size = all_size # uncomment this to produce test
-train_data = all_data[:train_size]
-valid_size = 100000
-valid_data = all_data[all_size - valid_size:]
+all_data = pickle.load(open('all_data.pickle', 'rb'))
+print('data loading time:', time.time() - start_time)
 
 # remove the outlier
-print("removing outlier")
-for i in reversed(range(train_size)):
-    d = train_data[i]
-    if d['helpful']['outOf'] > 5000:
-        train_data.pop(i)
+for i in reversed(range(len(all_data))):
+    d = all_data[i]
+    if d['helpful']['outOf'] > 3000:
+        all_data.pop(i)
+    elif d['helpful']['outOf'] < d['helpful']['nHelpful']:
+        all_data.pop(i)
 
 # utility functions
 def get_mae(helpfuls, helpfuls_predict):
-    return np.sum(np.fabs(helpfuls_predict - helpfuls.astype(float))) / helpfuls.shape[0]
+    return np.mean(np.fabs(helpfuls_predict - helpfuls.astype(float)))
 
-# get global average
-train_helpfuls = np.array([d['helpful']['nHelpful'] for d in train_data])
-train_outofs = np.array([d['helpful']['outOf'] for d in train_data])
-train_avg_ratio = np.sum(train_helpfuls) / np.sum(train_outofs.astype(float))
-print('avg helpfulness ratio', train_avg_ratio)
+# load pre computed features
+global_feature, users_feature, items_feature = pickle.load(
+    open('global_users_items_feature.feature', 'rb'))
+style_dict = pickle.load(open('style_dict.feature', 'rb'))
 
-# linear search best ratio
-def linear_search_ratio(helpfuls, outofs, search_range=(0.3, 1.0, 0.001)):
-    alphas = np.arange(*search_range)
-    errors = [get_mae(helpfuls, outofs * alpha) for alpha in alphas]
-    optimal_alpha = alphas[np.argmin(errors)]
-    return optimal_alpha
-
-# training set global
-train_helpfuls = np.array([d['helpful']['nHelpful'] for d in train_data])
-train_outofs = np.array([d['helpful']['outOf'] for d in train_data])
-train_avg_ratio = linear_search_ratio(
-    train_helpfuls, train_outofs, search_range=(0.3, 1.0, 0.001))
-print('optimal helpfulness ratio', train_avg_ratio)
-
-# get average for a user
-users_outof = dict()
-users_helpful = dict()
-
-for d in train_data:
-    user_id = d['reviewerID']
-    users_outof[user_id] = users_outof.get(
-        user_id, 0.0) + float(d['helpful']['outOf'])
-    users_helpful[user_id] = users_helpful.get(
-        user_id, 0.0) + float(d['helpful']['nHelpful'])
-
-users_ratio = dict()
-for user_id in users_outof:
-    if users_outof[user_id] != 0:
-        users_ratio[user_id] = users_helpful[user_id] / users_outof[user_id]
-    else:
-        users_ratio[user_id] = train_avg_ratio
-
-# get average for a item
-items_outof = dict()
-items_helpful = dict()
-
-for d in train_data:
-    item_id = d['itemID']
-    items_outof[item_id] = items_outof.get(
-        item_id, 0.0) + float(d['helpful']['outOf'])
-    items_helpful[item_id] = items_helpful.get(
-        item_id, 0.0) + float(d['helpful']['nHelpful'])
-
-items_ratio = dict()
-for item_id in items_outof:
-    if items_outof[item_id] != 0:
-        items_ratio[item_id] = items_helpful[item_id] / items_outof[item_id]
-    else:
-        items_ratio[item_id] = train_avg_ratio
-
-# pre-computed features
-with open('betas.pickle') as f:
-    beta_us, beta_is = pickle.load(f)
-
-with open('train_ratio_list.pickle') as f:
-    train_ratio_list = pickle.load(f)
-
-with open(os.path.join(data_root, 'num_unique_word.feature')) as f:
-    num_unique_word_dict = pickle.load(f)
-
-with open(os.path.join(data_root, 'style_dict.feature')) as f:
-    style_dict = pickle.load(f)
-    # style_dict['U243261361']['I572782694']
-    # {'avg_word_len': 4.857142857142857,
-    #  'capital_count': 11.0,
-    #  'capital_ratio': 0.028205128205128206,
-    #  'dotdotdot_count': 4.0,
-    #  'exclam_count': 0.0,
-    #  'exclam_exclam_count': 0.0,
-    #  'num_chars': 369.0,
-    #  'num_sentences': 3.0,
-    #  'num_unique_words': 50,
-    #  'num_words': 63.0,
-    #  'num_words_summary': 2,
-    #  'punctuation_count': 21.0,
-    #  'punctuation_ratio': 0.05384615384615385,
-    #  'question_count': 0.0,
-    #  'redability': 16.65714285714285}
-
-def get_y_m_d(d):
+# feature engineering
+def get_feature_time(d):
     unix_time = d['unixReviewTime']
     y, m, d = datetime.datetime.fromtimestamp(
         unix_time).strftime('%Y-%m-%d').split('-')
-    y = int(y)
-    m = int(m)
-    d = int(d)
-    return(y, m, d)
+    y = float(y)
+    m = float(m)
+    d = float(d)
+    return [y, m, d]
 
-def get_feature_time(d):
-    y, m, d = get_y_m_d(d)
-    y = min(y, 2014)
-    y = max(y, 1996)
-    # 1996 [1,0,..,0] 2014 [0,0,...,0]
-    y_feature = [0] * (2014 - 1996 + 1)
-    y_feature[y - 1996] = 1
-    # jan [1,0,...,0] dec [0,0,...,0]
-    m_feature = [0] * 12
-    m_feature[m - 1] = 1
-    # date1 [1,0,...,0] date31 [0,0,...,0]
-    d_feature = [0] * 31
-    d_feature[d - 1] = 1
-    # concatenate
-    feature = y_feature[:-1] + m_feature[:-1] + d_feature[:-1]
+def get_feature_style(d):
+    # load from style dict
+    user_id = d['reviewerID']
+    item_id = d['itemID']
+    s = style_dict[user_id][item_id]
+
+    feature = [s['num_words'],
+               s['num_words_summary'],
+               s['redability'],
+               s['avg_word_len'],
+               s['num_words'] /
+               s['num_sentences'] if s['num_sentences'] != 0.0 else 0.0,
+               s['num_unique_words'],
+               s['exclam_exclam_count'] + s['question_count'],
+               s['dotdotdot_count'],
+               s['capital_ratio']
+               ]
     return feature
 
-def get_num_uique_word(d):
-    wordCount = defaultdict(int)
-    for w in d["reviewText"].split():
-        w = "".join([c for c in w.lower() if not c in punctuation])
-        w = stemmer.stem(w)
-        wordCount[w] += 1
-    return len(wordCount)
+def get_time_spot_ratio(times, spot):
+    # return the array index ratio to insert spot
+    if len(times) == 0:
+        return 0.
+    index = np.searchsorted(np.array(times), spot)
+    return float(index) / float(len(times))
+
+def get_feature_user(d):
+    user_id = d['reviewerID']
+    unix_time = d['unixReviewTime']
+
+    s = users_feature[user_id]
+    feature = [s['ratio_a'],
+               s['ratio_b'],
+               s['num_reviews'],
+               s['avg_review_length'],
+               s['avg_summary_length'],
+               get_time_spot_ratio(s['review_times'], unix_time)
+               ]
+    return feature
+
+def get_feature_item(d):
+    item_id = d['itemID']
+    unix_time = d['unixReviewTime']
+
+    s = items_feature[item_id]
+    feature = [s['ratio_a'],
+               s['ratio_b'],
+               s['num_reviews'],
+               s['avg_review_length'],
+               s['avg_summary_length'],
+               get_time_spot_ratio(s['review_times'], unix_time)
+               ]
+    return feature
 
 def get_feature(d):
     user_id = d['reviewerID']
     item_id = d['itemID']
+    unix_time = d['unixReviewTime']
 
+    # offset
     feature = [1.0]
-    feature += [users_ratio[user_id], items_ratio[item_id]]
+
+    # user
+    feature += get_feature_user(d)
+    # item
+    feature += get_feature_item(d)
+
+    # outof
+    feature += [float(d['helpful']['outOf'])]
+    # rating
     feature += [float(d['rating'])]
-
-    s = style_dict[user_id][item_id]
-    feature += [s['num_words'],
-                s['redability'],
-                s['exclam_exclam_count'] + s['question_count'],
-                s['capital_ratio'],
-                s['dotdotdot_count'],
-                s['num_unique_words']
-               ]
-
+    # styles
+    feature += get_feature_style(d)
+    # time
     feature += get_feature_time(d)
 
     return feature
 
 # get [feature, label] from single datum
-def get_feature_and_ratio_label(d, users_ratio, items_ratio):
+def get_feature_label_weight(d, total_outof_weights):
     # check valid
     outof = float(d['helpful']['outOf'])
-    if outof == 0:
-        raise('out of cannot be 0 for ratio')
+    assert outof != 0.
 
-    # get feature and ratio
+    # feature
     feature = get_feature(d)
+    # label
     ratio_label = float(d['helpful']['nHelpful']) / \
         float(d['helpful']['outOf'])
-    return (feature, ratio_label)
+    # weight
+    weight = float(d['helpful']['outOf']) / total_outof_weights
+
+    return (feature, ratio_label, weight)
 
 # build [feature, label] list from entire dataset
-def make_average_regression_dataset(train_data, users_ratio, items_ratio):
+def make_dataset(train_data):
     features = []
     labels = []
+    weights = []
+
+    train_outofs = np.array([d['helpful']['outOf']
+                             for d in train_data]).astype(float)
+    total_outof_weights = np.sum(train_outofs)
 
     for d in train_data:
         if float(d['helpful']['outOf']) == 0:
             continue
-        feature, label = get_feature_and_ratio_label(
-            d, users_ratio, items_ratio)
+        feature, label, weight = get_feature_label_weight(
+            d, total_outof_weights)
         features.append(feature)
         labels.append(label)
-    return (np.array(features), np.array(labels))
+        weights.append(weight)
+
+    return (np.array(features), np.array(labels), np.array(weights))
 
 # make one prediction
-def predict_helpful(d, ratio_predictor, train_avg_ratio, users_ratio,
-                    items_ratio):
+def predict_helpful(d, ratio_predictor):
     # ratio_predictor[func]: y = ratio_predictor(get_feature(d))
+
     user_id = d['reviewerID']
     item_id = d['itemID']
     outof = float(d['helpful']['outOf'])
 
-    if (user_id in users_ratio) and (item_id in items_ratio):
-        # ratio = np.dot(get_feature(d), theta)
-        predict = ratio_predictor(np.array(get_feature(d)).reshape(1, -1))
+    if (user_id in users_feature) and (item_id in items_feature):
+        predict = ratio_predictor(np.array(get_feature(d)).reshape((1, -1)))
         ratio = predict[0]  # np.ndarray
-    elif (user_id in users_ratio) and (item_id not in items_ratio):
-        ratio = users_ratio[user_id]
-    elif (user_id not in users_ratio) and (item_id in items_ratio):
-        ratio = items_ratio[item_id]
+    elif (user_id in users_feature) and (item_id not in items_feature):
+        ratio = users_feature[user_id]['ratio_b']
+    elif (user_id not in users_feature) and (item_id in items_feature):
+        ratio = items_ratio[item_id]['ratio_b']
     else:
-        ratio = train_avg_ratio
+        ratio = global_feature['global_ratio_b']
     return ratio * outof
 
 # make predictions and get mae on a dataset
-def get_valid_mae(valid_data, ratio_predictor, train_avg_ratio, users_ratio,
-                  items_ratio):
+def get_valid_mae(valid_data, ratio_predictor):
     # ground truth nhelpful
     helpfuls = np.array([float(d['helpful']['nHelpful']) for d in valid_data])
     # predited nhelpful
-    helpfuls_predict = np.array([predict_helpful(d, ratio_predictor,
-                                                 train_avg_ratio, users_ratio,
-                                                 items_ratio) for d in valid_data])
+    helpfuls_predict = np.array(
+        [predict_helpful(d, ratio_predictor) for d in valid_data])
     # return mae
     return get_mae(helpfuls, helpfuls_predict)
 
-###################### Gradient Boosting Grid Search ######################
+##########  Grid Search ##########
 
-from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.grid_search import GridSearchCV
-
-print("start building dataset")
 # build dataset
-train_xs, train_ys = make_average_regression_dataset(train_data,
-                                                     users_ratio, items_ratio)
-valid_xs, valid_ys = make_average_regression_dataset(valid_data,
-                                                     users_ratio, items_ratio)
-all_xs, all_ys = make_average_regression_dataset(all_data, users_ratio,
-                                                 items_ratio)
-print("dataset prepared")
+all_xs, all_ys, all_weights = make_dataset(all_data)
+print('dataset prepared')
 
-# set grid search param
-param_grid = {'learning_rate': [0.02, 0.01, 0.005, 0.002, 0.001],
-              'max_depth': [3, 4, 6],
-              'min_samples_leaf': [3, 5, 9, 17],
-              'max_features': [0.8, 0.5, 0.3, 0.1]
-              }
+# call gradient boosting
+regressor = GradientBoostingRegressor(
+    learning_rate=0.001, n_estimators=1000, max_depth=6, loss='lad')
+regressor.fit(all_xs[:30000], all_ys[:30000])
 
-est = GradientBoostingRegressor(n_estimators=3000, subsample=0.15, loss='lad', verbose=1)
-gs_cv = GridSearchCV(est, param_grid, verbose=1, n_jobs=21)
-gs_cv.fit(train_xs, train_ys)
-print(gs_cv.best_params_)
+# # set grid search param
+# param_grid = {'learning_rate': [0.02, 0.01, 0.005, 0.002, 0.001],
+#               'max_depth': [3, 4, 6],
+#               'min_samples_leaf': [3, 5, 9, 17],
+#               'max_features': [0.8, 0.5, 0.3, 0.1]
+#               }
 
-import ipdb; ipdb.set_trace()
+# # init regressor
+# regressor = GradientBoostingRegressor(n_estimators=3000,
+#                                       subsample=0.15,
+#                                       loss='lad',
+#                                       verbose=1)
 
-# gbr = GradientBoostingRegressor(learning_rate=0.005,
-#                                 n_estimators=1000,
-#                                 max_depth=6,
-#                                 max_features=0.1,
-#                                 min_samples_leaf=9, loss='lad')
-# gbr.fit(train_xs[:5000], train_ys[:5000])
-#
-# print(get_valid_mae(valid_data,
-#                     gbr.predict,
-#                     train_avg_ratio, users_ratio, items_ratio))
-#
+# # grid search
+# grid_searcher = GridSearchCV(regressor, param_grid, verbose=1, n_jobs=21)
+# grid_searcher.fit(train_xs, train_ys)
+
+# # print best params
+# print(grid_searcher.best_params_)
+
+
+########## Produce Test ##########
+
+# load helpful_data.json
+test_data = pickle.load(open('helpful_data.pickle', 'rb'))
+
+# on test set
+test_helpfuls_predict = [
+    predict_helpful(d, regressor.predict) for d in test_data]
+
+# load 'pairs_Helpful.txt'
+# get header_str and user_item_outofs
+with open('pairs_Helpful.txt') as f:
+    # read and strip lines
+    lines = [l.strip() for l in f.readlines()]
+    # stirip out the headers
+    header_str = lines.pop(0)
+    # get a list of user_item_ids
+    user_item_outofs = [l.split('-') for l in lines]
+    user_item_outofs = [[d[0], d[1], float(d[2])] for d in user_item_outofs]
+
+# make sure `data.json` and `pairs_Helpful.txt` the same order
+for (user_id, item_id, outof), d in zip(user_item_outofs, test_data):
+    assert d['reviewerID'] == user_id
+    assert d['itemID'] == item_id
+    assert d['helpful']['outOf'] == outof
+
+# write to output file
+f = open('predictions_Helpful.txt', 'w')
+print(header_str, file=f)
+for (user_id, item_id, outof), helpful_predict in zip(user_item_outofs,
+                                                      test_helpfuls_predict):
+    print('%s-%s-%s,%s' %
+          (user_id, item_id, int(outof), round(helpful_predict)), file=f)
+f.close()
