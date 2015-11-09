@@ -195,9 +195,17 @@ all_xs, all_ys, all_weights = make_dataset(all_data)
 print('dataset prepared')
 
 # call gradient boosting
-regressor = GradientBoostingRegressor(
-    learning_rate=0.001, n_estimators=1000, max_depth=6, loss='lad')
+print('start fitting regressor')
+regressor = GradientBoostingRegressor(learning_rate=0.001,
+                                      n_estimators=1000,
+                                      max_depth=6,
+                                      loss='lad',
+                                      verbose=1)
 regressor.fit(all_xs[:30000], all_ys[:30000])
+
+print('valid set mae', get_valid_mae(all_xs[900000:], regressor_gb.predict))
+
+# regressor.fit(all_xs, all_ys)
 
 # # set grid search param
 # param_grid = {'learning_rate': [0.02, 0.01, 0.005, 0.002, 0.001],
@@ -254,3 +262,6 @@ for (user_id, item_id, outof), helpful_predict in zip(user_item_outofs,
     print('%s-%s-%s,%s' %
           (user_id, item_id, int(outof), round(helpful_predict)), file=f)
 f.close()
+
+
+print('total elapsed time:', time.time() - start_time)
