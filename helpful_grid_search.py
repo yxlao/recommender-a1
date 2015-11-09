@@ -190,42 +190,50 @@ def get_valid_mae(valid_data, ratio_predictor):
 
 ##########  Grid Search ##########
 
+MAX_ITER = 3000
+
 # build dataset
 all_xs, all_ys, all_weights = make_dataset(all_data)
 print('dataset prepared')
 
-# call gradient boosting
-print('start fitting regressor')
-regressor = GradientBoostingRegressor(learning_rate=0.001,
-                                      n_estimators=1000,
-                                      max_depth=6,
+# set grid search param
+param_grid = {'learning_rate': [0.01, 0.005, 0.002, 0.001],
+              'max_depth': [3, 4, 6],
+              'min_samples_leaf': [3, 5, 9, 17],
+              'max_features': [0.8, 0.5, 0.3, 0.1],
+              'subsample': [0.1, 0.15, 0.2]
+              }
+
+param_grid = {'learning_rate': [0.002, 0.001],
+              'max_depth': [6],
+              'min_samples_leaf': [17],
+              'max_features': [0.1],
+              'subsample': [0.2]
+              }
+# init regressor
+regressor = GradientBoostingRegressor(n_estimators=MAX_ITER,
                                       loss='lad',
                                       verbose=1)
-regressor.fit(all_xs[:30000], all_ys[:30000])
 
-print('valid set mae', get_valid_mae(all_data[900000:], regressor.predict))
+# grid search
+grid_searcher = GridSearchCV(regressor, param_grid, verbose=1, n_jobs=36)
+grid_searcher.fit(all_xs[:3000], all_ys[:3000])
 
-# regressor.fit(all_xs, all_ys)
+# print best params
+opt_params = grid_searcher.best_params_
+print(opt_params)
 
-# # set grid search param
-# param_grid = {'learning_rate': [0.02, 0.01, 0.005, 0.002, 0.001],
-#               'max_depth': [3, 4, 6],
-#               'min_samples_leaf': [3, 5, 9, 17],
-#               'max_features': [0.8, 0.5, 0.3, 0.1]
-#               }
+# store optimal regressor
+opt_regressor = grid_searcher.best_estimator_
 
-# # init regressor
-# regressor = GradientBoostingRegressor(n_estimators=3000,
-#                                       subsample=0.15,
-#                                       loss='lad',
-#                                       verbose=1)
-
-# # grid search
-# grid_searcher = GridSearchCV(regressor, param_grid, verbose=1, n_jobs=21)
-# grid_searcher.fit(train_xs, train_ys)
-
-# # print best params
-# print(grid_searcher.best_params_)
+opt_regressor_name = "opt_%s_%s_%s_%s_%s_%s" % (3000,
+                                                opt_params['max_depth'],
+                                                opt_params['min_samples_leaf'],
+                                                opt_params['max_features'],
+                                                opt_params['subsample'])
+pickle.dump(opt_regressor, open(opt_regressor_name + '.pickle', 'wb'),
+            protocol=pickle.HIGHEST_PROTOCOL)
+opt_regressor = pickle.load(open(opt_regressor_name + '.pickle', 'rb'))
 
 
 ########## Produce Test ##########
@@ -235,7 +243,7 @@ test_data = pickle.load(open('helpful_data.pickle', 'rb'))
 
 # on test set
 test_helpfuls_predict = [
-    predict_helpful(d, regressor.predict) for d in test_data]
+    predict_helpful(d, opt_regressor.predict) for d in test_data]
 
 # load 'pairs_Helpful.txt'
 # get header_str and user_item_outofs
@@ -265,3 +273,5 @@ f.close()
 
 
 print('total elapsed time:', time.time() - start_time)
+
+import ipdb; ipdb.set_trace()
