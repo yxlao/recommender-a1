@@ -71,9 +71,9 @@ def get_level_one_feature(d):
         if len(cat_list) > 1:
             level_one_cats.add(cat_list[1])
     # gen binary feature of length 33
-    feature = [0.] * len(cat_feature['level_cats'][1])
+    feature = [0.] * len(global_feature['level_cats'][1])
     for cat in level_one_cats:
-        index = cat_feature['level_cats'][1].index(cat)
+        index = global_feature['level_cats'][1].index(cat)
         feature[index] = 1.0
     return feature
 
