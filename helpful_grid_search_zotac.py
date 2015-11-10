@@ -15,6 +15,7 @@ from sklearn.grid_search import GridSearchCV
 # load all_data and test_data
 start_time = time.time()
 all_data = pickle.load(open('all_data.pickle', 'rb'))
+test_data = pickle.load(open("helpful_data.pickle", "rb"))
 print('data loading time:', time.time() - start_time)
 
 # remove the outlier
