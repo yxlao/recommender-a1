@@ -7,3 +7,4 @@ reference
 *.pdf
 gen/*
 *.feature
+*txt_backup
