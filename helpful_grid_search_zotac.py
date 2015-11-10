@@ -34,6 +34,59 @@ global_feature, users_feature, items_feature = pickle.load(
     open('global_users_items_feature.feature', 'rb'))
 style_dict = pickle.load(open('style_dict.feature', 'rb'))
 
+###### begin cats ######
+# add global_feature['level_cats'] to global_feature
+raw_cats = [d['category'] for d in all_data + test_data]
+
+level_cats = list()
+for level in range(7):
+    level_cats.append(set())
+    for cat_list_list in raw_cats:
+        for cat_list in cat_list_list:
+            if len(cat_list) > level:
+                level_cats[level].add(cat_list[level])
+# convert set to list
+for i in range(len(level_cats)):
+    level_cats[i] = sorted(list(level_cats[i]))
+global_feature['level_cats'] = level_cats
+
+def get_level_zero_feature(d):
+    def is_kindle(d):
+        is_kindle = False
+        cat_list_list = d['category']
+        for cat_list in cat_list_list:
+            if (cat_list[0] == 'Kindle Store'):
+                return True
+        return False
+    if is_kindle(d):
+        return [1.0]
+    else:
+        return [0.0]
+
+def get_level_one_feature(d):
+    cat_list_list = d['category']
+    level_one_cats = set()
+    for cat_list in cat_list_list:
+        if len(cat_list) > 1:
+            level_one_cats.add(cat_list[1])
+    # gen binary feature of length 33
+    feature = [0.] * len(cat_feature['level_cats'][1])
+    for cat in level_one_cats:
+        index = cat_feature['level_cats'][1].index(cat)
+        feature[index] = 1.0
+    return feature
+
+def get_feature_cat(d):
+    feature = []
+    # how many cats
+    feature += [float(len(d['category']))]
+    # 2 level feature
+    feature += get_level_zero_feature(d)
+    feature += get_level_one_feature(d)
+    return feature
+
+###### end cats ######
+
 # feature engineering
 def get_feature_time(d):
     unix_time = d['unixReviewTime']
@@ -119,6 +172,11 @@ def get_feature(d):
     feature += get_feature_style(d)
     # time
     feature += get_feature_time(d)
+    # category
+    feature += get_feature_cat(d)
+    
+    for i in range(len(feature)):
+        feature[i] = float(feature[i])
 
     return feature
 
