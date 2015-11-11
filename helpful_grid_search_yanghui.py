@@ -175,7 +175,7 @@ def get_feature(d):
     feature += get_feature_time(d)
     # category
     feature += get_feature_cat(d)
-    
+
     for i in range(len(feature)):
         feature[i] = float(feature[i])
 
@@ -261,9 +261,9 @@ print('dataset prepared')
 # set grid search param
 param_grid = {'learning_rate': [0.1, 0.05, 0.01, 0.005],
               'max_depth': [4, 6],
-              'min_samples_leaf': [3, 9],
+              'min_samples_leaf': [9],
               'max_features': [0.1, 0.5],
-              'subsample': [0.1, 0.3]
+              'subsample': [0.1]
               }
 
 # init regressor
@@ -272,7 +272,7 @@ regressor = GradientBoostingRegressor(n_estimators=MAX_ITER,
                                       verbose=1)
 
 # grid search
-grid_searcher = GridSearchCV(regressor, param_grid, verbose=1, n_jobs=3)
+grid_searcher = GridSearchCV(regressor, param_grid, verbose=1, n_jobs=6)
 grid_searcher.fit(all_xs, all_ys)
 
 # print best params
@@ -329,3 +329,4 @@ f.close()
 
 
 print('total elapsed time:', time.time() - start_time)
+
