@@ -8,3 +8,4 @@ reference
 gen/*
 *.feature
 *txt_backup
+*.venv/
