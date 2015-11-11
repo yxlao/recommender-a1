@@ -274,7 +274,7 @@ regressor = GradientBoostingRegressor(n_estimators=MAX_ITER,
 # grid search
 grid_searcher = GridSearchCV(regressor, param_grid,
                              fit_params={'sample_weight': all_weights},
-                             verbose=1, n_jobs=2)
+                             verbose=1, n_jobs=1)
 grid_searcher.fit(all_xs, all_ys)
 
 # print best params
