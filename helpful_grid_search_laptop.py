@@ -259,11 +259,11 @@ pickle.dump((all_xs, all_ys, all_weights),
 print('dataset prepared')
 
 # set grid search param
-param_grid = {'learning_rate': [0.01],
-              'max_depth': [4],
-              'min_samples_leaf': [15], # shall be bigger? i think
+param_grid = {'learning_rate': [0.05, 0.02, 0.01, 0.005],
+              'max_depth': [6],
+              'min_samples_leaf': [9],
               'max_features': [0.5],
-              'subsample': [0.1]
+              'subsample': [0.05]
               }
 
 # init regressor
@@ -272,7 +272,9 @@ regressor = GradientBoostingRegressor(n_estimators=MAX_ITER,
                                       verbose=1)
 
 # grid search
-grid_searcher = GridSearchCV(regressor, param_grid, verbose=1, n_jobs=4)
+grid_searcher = GridSearchCV(regressor, param_grid,
+                             fit_params={'sample_weight': all_weights},
+                             verbose=1, n_jobs=4)
 grid_searcher.fit(all_xs, all_ys)
 
 # print best params
