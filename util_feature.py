@@ -12,6 +12,7 @@ import datetime
 # user, item feature
 global_feature, users_feature, items_feature = pickle.load(
     open('global_users_items_feature.feature', 'rb'))
+
 # style_dict
 style_dict = pickle.load(open('style_dict.feature', 'rb'))
 
@@ -76,13 +77,15 @@ def get_feature_style(d):
     return feature
 
 
+def get_time_spot_ratio(times, spot):
+    """ return the array index ratio to insert spot """
+    if len(times) == 0:
+        return 0.
+    index = np.searchsorted(np.array(times), spot)
+    return float(index) / float(len(times))
+
+
 def get_feature_user(d):
-    def get_time_spot_ratio(times, spot):
-        # return the array index ratio to insert spot
-        if len(times) == 0:
-            return 0.
-        index = np.searchsorted(np.array(times), spot)
-        return float(index) / float(len(times))
     user_id = d['reviewerID']
     unix_time = d['unixReviewTime']
 
@@ -92,7 +95,7 @@ def get_feature_user(d):
                s['num_reviews'],
                s['avg_review_length'],
                s['avg_summary_length'],
-               s['avg_rating'],
+               # s['avg_rating'], # comment this if using old models
                get_time_spot_ratio(s['review_times'], unix_time)
                ]
     return feature
@@ -108,7 +111,7 @@ def get_feature_item(d):
                s['num_reviews'],
                s['avg_review_length'],
                s['avg_summary_length'],
-               s['avg_rating'],
+               # s['avg_rating'], # comment this if using old models
                get_time_spot_ratio(s['review_times'], unix_time)
                ]
     return feature
