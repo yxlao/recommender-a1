@@ -260,10 +260,10 @@ print('dataset prepared')
 
 # set grid search param
 param_grid = {'learning_rate': [0.05, 0.02, 0.01, 0.005],
-              'max_depth': [4],
+              'max_depth': [6],
               'min_samples_leaf': [9],
               'max_features': [0.5],
-              'subsample': [0.05, 0.1]
+              'subsample': [0.05]
               }
 
 # init regressor
