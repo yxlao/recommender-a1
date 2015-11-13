@@ -17,11 +17,12 @@ from util_feature import make_dataset
 
 class HelpfulGridSearcher(object):
 
-    def __init__(self, param_grid, n_estimators, n_jobs):
+    def __init__(self, param_grid, n_estimators, n_jobs, apply_weights=False):
         super(HelpfulGridSearcher, self).__init__()
         self.param_grid = param_grid
         self.n_estimators = n_estimators
         self.n_jobs = n_jobs
+        self.apply_weights = apply_weights
 
     def run(self):
         # load all_data and test_data
@@ -48,9 +49,21 @@ class HelpfulGridSearcher(object):
                                               loss='lad',
                                               verbose=1)
 
-        # grid search
-        grid_searcher = GridSearchCV(regressor, self.param_grid, verbose=1,
-                                     n_jobs=self.n_jobs)
+        # init grid searcher
+        if self.apply_weights:
+            grid_searcher = GridSearchCV(regressor,
+                                         self.param_grid,
+                                         fit_params={
+                                             'sample_weight': all_weights},
+                                         verbose=1,
+                                         n_jobs=4)
+        else:
+            grid_searcher = GridSearchCV(regressor,
+                                         self.param_grid,
+                                         verbose=1,
+                                         n_jobs=self.n_jobs)
+
+        # fit grid searcher
         grid_searcher.fit(all_xs, all_ys)
 
         # print best params
@@ -60,15 +73,17 @@ class HelpfulGridSearcher(object):
         # store optimal regressor
         opt_regressor = grid_searcher.best_estimator_
 
-        opt_regressor_name = "opt_%s_%s_%s_%s_%s" % (opt_params['learning_rate'],
-                                                     opt_params['max_depth'],
-                                                     opt_params[
-                                                         'min_samples_leaf'],
-                                                     opt_params[
-                                                         'max_features'],
-                                                     opt_params['subsample'])
+        opt_regressor_name = "opt_%s_%s_%s_%s_%s_%s" % \
+                             (opt_params['learning_rate'],
+                              opt_params['max_depth'],
+                              opt_params['min_samples_leaf'],
+                              opt_params['max_features'],
+                              opt_params['subsample'],
+                              "weight" if self.apply_weights else "no-weight")
         pickle.dump(opt_regressor, open(opt_regressor_name + '.pickle', 'wb'),
                     protocol=pickle.HIGHEST_PROTOCOL)
         opt_regressor = pickle.load(open(opt_regressor_name + '.pickle', 'rb'))
+
+        print("saved in:", opt_regressor_name + '.pickle')
 
         return (opt_regressor, opt_params)
