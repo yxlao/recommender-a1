@@ -5,7 +5,7 @@ from helpful_grid_search import HelpfulGridSearcher
 param_grid = {'learning_rate': [0.1, 0.05, 0.02, 0.01],
               'max_depth': [4],
               'min_samples_leaf': [9],
-              'max_features': [0.1, 0.5, 0.8],
+              'max_features': [0.1, 0.8],
               'subsample': [0.1, 0.3, 0.5]
               }
 
