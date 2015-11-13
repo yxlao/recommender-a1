@@ -95,7 +95,7 @@ def get_feature_user(d):
                s['num_reviews'],
                s['avg_review_length'],
                s['avg_summary_length'],
-               # s['avg_rating'], # comment this if using old models
+               s['avg_rating'], # comment this if using old models
                get_time_spot_ratio(s['review_times'], unix_time)
                ]
     return feature
@@ -111,7 +111,7 @@ def get_feature_item(d):
                s['num_reviews'],
                s['avg_review_length'],
                s['avg_summary_length'],
-               # s['avg_rating'], # comment this if using old models
+               s['avg_rating'], # comment this if using old models
                get_time_spot_ratio(s['review_times'], unix_time)
                ]
     return feature
