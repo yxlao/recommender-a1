@@ -5,7 +5,7 @@ param_grid = {'learning_rate': [0.1, 0.05, 0.02, 0.01],
               'max_depth': [4],
               'min_samples_leaf': [3, 7, 9, 13],
               'max_features': [0.5],
-              'subsample': [0.3]
+              'subsample': [0.1]
               }
 
 # execute
