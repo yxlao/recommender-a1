@@ -9,3 +9,4 @@ gen/*
 *.feature
 *txt_backup
 *.venv/
+*.dat
