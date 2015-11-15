@@ -12,6 +12,6 @@ param_grid = {'learning_rate': [0.2, 0.15, 0.1, 0.05],
 # execute
 searcher = HelpfulGridSearcher(param_grid=param_grid,
                                n_estimators=3000,
-                               n_jobs=7,
+                               n_jobs=8,
                                apply_weights=False)
 opt_regressor, opt_params = searcher.run()
