@@ -68,7 +68,7 @@ def objective(theta, grad_buffer, rating_array, lam, K):
                  - float(datum[2])
                 ) ** 2.0
     cost += lam * (np.linalg.norm(theta[1:]) ** 2.0)
-    return 0.5 * cost #/ rating_array.shape[0]
+    return 0.5 * cost / rating_array.shape[0]
 
 def gradient_user(theta, grad_buffer, rating_array, lam, K):
     """ keep gamma_items_grad to zero """
