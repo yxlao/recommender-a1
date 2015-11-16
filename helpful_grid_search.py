@@ -99,24 +99,29 @@ class RegressorFitDumper(object):
         self.apply_weights = apply_weights
 
     def run(self):
-        # load all_data and test_data
-        print('loading data')
+        # # load all_data and test_data
+        # print('loading data')
         start_time = time.time()
-        all_data = pickle.load(open('all_data.pickle', 'rb'))
-        print('data loaded, elapsed time:', time.time() - start_time)
+        # all_data = pickle.load(open('all_data.pickle', 'rb'))
+        # print('data loaded, elapsed time:', time.time() - start_time)
 
-        # remove the outlier
-        for i in reversed(range(len(all_data))):
-            d = all_data[i]
-            if d['helpful']['outOf'] > 3000:
-                all_data.pop(i)
-            elif d['helpful']['outOf'] < d['helpful']['nHelpful']:
-                all_data.pop(i)
+        # # remove the outlier
+        # for i in reversed(range(len(all_data))):
+        #     d = all_data[i]
+        #     if d['helpful']['outOf'] > 3000:
+        #         all_data.pop(i)
+        #     elif d['helpful']['outOf'] < d['helpful']['nHelpful']:
+        #         all_data.pop(i)
 
-        # build dataset
-        all_xs, all_ys, all_weights = make_dataset(all_data)
-        all_data = None
-        gc.collect()
+        # # build dataset
+        # all_xs, all_ys, all_weights = make_dataset(all_data)
+        # pickle.dump((all_xs, all_ys, all_weights),
+        #             open('zotac_all_xs_all_ys_all_weights.pickle', 'wb'),
+        #             protocol=pickle.HIGHEST_PROTOCOL)
+        all_xs, all_ys, all_weights = pickle.load(open('zotac_all_xs_all_ys_all_weights.pickle', 'rb'))
+
+        # all_data = None
+        # gc.collect()
         print('dataset prepared, elapsed time:', time.time() - start_time)
 
         for (learning_rate,
