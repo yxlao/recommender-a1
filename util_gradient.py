@@ -67,7 +67,7 @@ def objective(theta, grad_buffer, rating_array, lam, K):
                  + np.dot(gamma_users[user_index], gamma_items[item_index])
                  - float(datum[2])
                 ) ** 2.0
-    cost += lam * (np.linalg.norm(theta) ** 2.0)
+    cost += lam * (np.linalg.norm(theta[1:]) ** 2.0)
     return 0.5 * cost #/ rating_array.shape[0]
 
 def gradient_user(theta, grad_buffer, rating_array, lam, K):
@@ -104,7 +104,7 @@ def gradient_user(theta, grad_buffer, rating_array, lam, K):
     grad_buffer = pack(grad_buffer, K, alpha_grad,
                        beta_users_grad, beta_items_grad,
                        gamma_users_grad, gamma_items_grad)
-    grad_buffer = grad_buffer #/ rating_array.shape[0]
+    grad_buffer = grad_buffer / rating_array.shape[0]
     return grad_buffer
 
 def gradient_item(theta, grad_buffer, rating_array, lam, K):
@@ -137,12 +137,11 @@ def gradient_item(theta, grad_buffer, rating_array, lam, K):
         gamma_items_grad[item_index] += common_offset * gamma_users[user_index]
     # regularization term
     beta_items_grad = beta_items_grad + lam * beta_items
-
     # pack
     grad_buffer = pack(grad_buffer, K, alpha_grad,
                        beta_users_grad, beta_items_grad,
                        gamma_users_grad, gamma_items_grad)
-    grad_buffer = grad_buffer #/ rating_array.shape[0]
+    grad_buffer = grad_buffer / rating_array.shape[0]
     return grad_buffer
 
 def gradient(theta, grad_buffer, rating_array, lam, K):
@@ -180,7 +179,7 @@ def gradient(theta, grad_buffer, rating_array, lam, K):
     grad_buffer = pack(grad_buffer, K, alpha_grad,
                        beta_users_grad, beta_items_grad,
                        gamma_users_grad, gamma_items_grad)
-    grad_buffer = grad_buffer #/ rating_array.shape[0]
+    grad_buffer = grad_buffer / rating_array.shape[0]
     return grad_buffer
 
 def predict_one_rating(user_index, item_index, theta, K):
