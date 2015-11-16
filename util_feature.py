@@ -210,6 +210,9 @@ def predict_helpful(d, ratio_predictor):
         ratio = items_ratio[item_id]['ratio_b']
     else:
         ratio = global_feature['global_ratio_b']
+
+    ratio = min(ratio, 1.0)
+    ratio = max(ratio, 0.0)
     return ratio * outof
 
 
