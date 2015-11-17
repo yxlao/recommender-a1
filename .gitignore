@@ -10,3 +10,4 @@ gen/*
 *txt_backup
 *.venv/
 *.dat
+*.report/
