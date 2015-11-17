@@ -8,11 +8,11 @@ from helpful_grid_search import HelpfulGridSearcher
 #               'max_features': [0.1, 0.2],
 #               'subsample': [0.4, 0.5, 0.7]
 #               }
-param_grid = {'learning_rate': [0.2, 0.15, 0.1, 0.05],
+param_grid = {'learning_rate': [0.2, 0.15, 0.1],
               'max_depth': [4],
-              'min_samples_leaf': [7, 11, 13],
-              'max_features': [0.3, 0.5, 0.7],
-              'subsample': [0.1, 0.4, 0.5]
+              'min_samples_leaf': [9],
+              'max_features': [0.1, 0.2, 0.5],
+              'subsample': [0.4, 0.5, 0.6]
               }
 
 # execute
