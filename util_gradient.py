@@ -193,6 +193,41 @@ def gradient(theta, grad_buffer, rating_array, lam, K):
     return grad_buffer
 
 
+def gradient_only_alpha_beta(theta, grad_buffer, rating_array, lam, K):
+    # unpack theta
+    alpha, beta_users, beta_items, gamma_users, gamma_items = unpack(theta, K)
+    # reset and unpack grad_buffer
+    grad_buffer.fill(0.)
+    alpha_grad, beta_users_grad, beta_items_grad, gamma_users_grad, gamma_items_grad = unpack(
+        grad_buffer, K)
+
+    # cost term: accumulate gradients
+    for datum in rating_array:
+        # make prediction
+        user_index = datum[0]
+        item_index = datum[1]
+        prediction = (float(alpha)
+                      + beta_users[user_index]
+                      + beta_items[item_index]
+                      + np.dot(gamma_users[user_index], gamma_items[item_index]))
+        common_offset = (prediction - float(datum[2]))  # offset error
+        # alpha
+        alpha_grad += common_offset
+        # beta_user
+        beta_users_grad[user_index] += common_offset
+        # beta_item
+        beta_items_grad[item_index] += common_offset
+    # regularization term
+    beta_users_grad = beta_users_grad + lam * beta_users
+    beta_items_grad = beta_items_grad + lam * beta_items
+    # pack
+    grad_buffer = pack(grad_buffer, K, alpha_grad,
+                       beta_users_grad, beta_items_grad,
+                       gamma_users_grad, gamma_items_grad)
+    grad_buffer = grad_buffer / float(rating_array.shape[0])
+    return grad_buffer
+
+
 def gradient_only_alpha(theta, grad_buffer, rating_array, lam, K):
     # unpack theta
     alpha, beta_users, beta_items, gamma_users, gamma_items = unpack(theta, K)
