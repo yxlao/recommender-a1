@@ -11,3 +11,4 @@ gen/*
 *.venv/
 *.dat
 *.report/
+models*
